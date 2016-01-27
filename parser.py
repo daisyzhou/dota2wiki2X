@@ -1,7 +1,7 @@
 # scratch work to test stuff
 from lxml import html
 
-print 'NOTE: for some reason this only works if the html has been formatted (tabulated, etc)'
+print 'NOTE: for some reason this only works if the html has been formatted (indented properly, separate lines, etc)'
 
 def parse_attributes(attributes_rows):
     for row in attributes_rows:
@@ -27,6 +27,20 @@ def parse_stats(stats_rows):
     print('level 25 health regen: %s' % health_regen[4].text)
 
     # TODO: mana, manan regen, attack damage, armor, attack speed
+
+
+def parse_other_attrs(other_attr_rows):
+    for row in other_attr_rows:
+        name_elem = row.xpath('td/b/a')
+        if len(name_elem) > 0:
+            name = name_elem[0].text
+        else:
+            name = row.xpath('td/b')[0].text
+        value = row.xpath('td')[1].text.lstrip()
+        # Some of the values are in a span.
+        if len(value.strip()) == 0:
+            value = row.xpath('td/span[@id="tooltip"]')[0].text
+        print('%s: %s' % (name, value))
 
 def parse_single_hero(single_page):
     """
@@ -58,7 +72,8 @@ def parse_single_hero(single_page):
     parse_stats(stats_rows)
 
     # attrs that don't change per level like movement speed, turn rate, etc
-    other_attrs = infobox_rows[4]
+    other_attrs = infobox_rows[4].xpath('td/table/tr')
+    parse_other_attrs(other_attrs)
 
 with open('earthshaker.html') as f:
     single_page = html.fromstring(f.read(), parser=html.html_parser)
