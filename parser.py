@@ -7,34 +7,35 @@ with open('earthshaker.html') as f:
     single_page = html.fromstring(f.read(), parser=html.html_parser)
     f.close()
 
-print(single_page)
-print(single_page.xpath('///text()'))
-body = single_page.getchildren()[1]
-
-print 'rows in outermost table (no dota info)'
-table_body = body.getchildren()[1].getchildren()
-print(table_body)
-rows = table_body[0].getchildren()
-print(rows)
-# for r in rows:
-#     if r[0].text != None or r[1].text != None:
-#         print(r[0].text, r[1].text)
-
-
-print 'STEP BY STEP'
-print(len(single_page.xpath('//body')))
 body = single_page.xpath('//body')[0]
-print(body)
-print(body.getchildren())
-global_wrapper = body.xpath('//div[@id="global-wrapper"]')[0]
-print(global_wrapper)
-page_wrapper = global_wrapper.xpath('//div[@id="pageWrapper"]')[0]
-print(page_wrapper)
-content = page_wrapper.xpath('//div[@id="content"][@class="mw-body"]')[0]
-print(content)
-body_wrapper = content.xpath('//div[@id="bodyWrapper"]')[0]
-print(body_wrapper)
-body_content = body_wrapper.xpath('//div[@id="bodyContent"]')[0].xpath('//div[@id="mw-content-text"][@class="mw-content-ltr"]')[0]
-print(body_content)
-abilities = body_content.xpath('//h2/span[@id="Abilities"]')[0]
+content = \
+    body.xpath('//div[@id="global-wrapper"]')[0]\
+            .xpath('//div[@id="pageWrapper"]')[0]\
+            .xpath('//div[@id="content"][@class="mw-body"]')[0]\
+            .xpath('//div[@id="bodyWrapper"]')[0]\
+            .xpath('//div[@id="bodyContent"]')[0]\
+            .xpath('//div[@id="mw-content-text"][@class="mw-content-ltr"]')[0]
+
+infobox_rows = content.xpath('//table[@class="infobox"]/tr')
+
+name = infobox_rows[0].xpath('td/table/tr/th')[0].text.lstrip()
+print("Name: %s" % name)
+
+# Strength/Agility/Intelligence base + growth
+print("attr base + growth")
+attributes = infobox_rows[2]
+attributes_rows = attributes.xpath('td/table/tr/th')
+for row in attributes_rows:
+    attr_name = row.xpath('a')[0].attrib['title']
+    base = row.xpath('b')[0].text
+    growth = row.xpath('b')[0].tail.strip(' +')
+    print('Attribute: %s, %s+%s' % (attr_name, base, growth))
+
+# various attrs at different levels (base, 1, 16, 25)
+stats = infobox_rows[3]
+
+# attrs that don't change per level like movement speed, turn rate, etc
+other_attrs = infobox_rows[4]
+
+abilities = content.xpath('//h2/span[@id="Abilities"]')[0]
 print(abilities)
