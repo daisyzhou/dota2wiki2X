@@ -1,35 +1,29 @@
 # scratch work to test stuff
 from lxml import html
 
+from representation.hero import Hero
+
 print 'NOTE: for some reason this only works if the html has been formatted (indented properly, separate lines, etc)'
 
-def parse_attributes(attributes_rows):
+
+def parse_attributes(attributes_rows, hero):
     for row in attributes_rows:
         attr_name = row.xpath('a')[0].attrib['title']
         base = row.xpath('b')[0].text
         growth = row.xpath('b')[0].tail.strip(' +')
-        print('Attribute: %s, %s+%s' % (attr_name, base, growth))
+        hero.attr_growth[attr_name] = (base, growth)
 
 
-def parse_stats(stats_rows):
+def parse_stats(stats_rows, hero):
     header = stats_rows[0] #  unused, just says base/1/16/25
-    hit_points = stats_rows[1].xpath('td')
-    # hit_points[0] is empty because it's the header column
-    print('base hp: %s' % hit_points[1].text)
-    print('level 1 hp: %s' % hit_points[2].text)
-    print('level 16 hp: %s' % hit_points[3].text)
-    print('level 25 hp: %s' % hit_points[4].text)
-    health_regen = stats_rows[2].xpath('td')
-    # health_regen[0] is empty because it's the header column
-    print('base health regen: %s' % health_regen[1].text)
-    print('level 1 health regen: %s' % health_regen[2].text)
-    print('level 16 health regen: %s' % health_regen[3].text)
-    print('level 25 health regen: %s' % health_regen[4].text)
+    for row in stats_rows[1:]:
+        row_elems = row.xpath('td')
+        attr_name = row_elems[0].xpath("b/a")[0].text
+        if attr_name is None:
+            attr_name = row_elems[0].xpath("b/a/span")[0].text
+        hero.scaling_attrs[attr_name] = (row_elems[1].text, row_elems[2].text, row_elems[3].text, row_elems[4].text)
 
-    # TODO: mana, manan regen, attack damage, armor, attack speed
-
-
-def parse_other_attrs(other_attr_rows):
+def parse_other_attrs(other_attr_rows, hero):
     for row in other_attr_rows:
         name_elem = row.xpath('td/b/a')
         if len(name_elem) > 0:
@@ -40,13 +34,15 @@ def parse_other_attrs(other_attr_rows):
         # Some of the values are in a span.
         if len(value.strip()) == 0:
             value = row.xpath('td/span[@id="tooltip"]')[0].text
-        print('%s: %s' % (name, value))
+        hero.kv_attrs[name] = value
 
 def parse_single_hero(single_page):
     """
     :param single_page: html document, parsed for example using html.fromstring
     :return: TODO
     """
+    hero = Hero()
+
     body = single_page.xpath('//body')[0]
     content = \
         body.xpath('//div[@id="global-wrapper"]')[0]\
@@ -59,21 +55,21 @@ def parse_single_hero(single_page):
     infobox_rows = content.xpath('//table[@class="infobox"]/tr')
 
     name = infobox_rows[0].xpath('td/table/tr/th')[0].text.lstrip()
-    print("Name: %s" % name)
+    hero.name = name
 
     # Strength/Agility/Intelligence base + growth
-    print("attr base + growth")
     attributes = infobox_rows[2]
     attributes_rows = attributes.xpath('td/table/tr/th')
-    parse_attributes(attributes_rows)
+    parse_attributes(attributes_rows, hero)
 
     # various attrs at different levels (base, 1, 16, 25)
     stats_rows = infobox_rows[3].xpath('td/table/tr')
-    parse_stats(stats_rows)
+    parse_stats(stats_rows, hero)
 
     # attrs that don't change per level like movement speed, turn rate, etc
     other_attrs = infobox_rows[4].xpath('td/table/tr')
-    parse_other_attrs(other_attrs)
+    parse_other_attrs(other_attrs, hero)
+    hero.pretty_print()
 
 with open('earthshaker.html') as f:
     single_page = html.fromstring(f.read(), parser=html.html_parser)
